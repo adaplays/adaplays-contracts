@@ -44,6 +44,9 @@ library
       MyModule
       PDR.Compiler
       PDR.Validator
+      Games.RPS.Validator
+      Utils.ThreadToken.Validator
+      Utils.ThreadToken.Compiler
     build-depends:
       base >= 4.9 && < 5,
       aeson -any,
