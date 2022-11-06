@@ -25,7 +25,7 @@ import           PlutusTx.Prelude                                      hiding
 
 data Action = Mint | Burn
 
-PlutusTx.unstableMakeIsData ''Action
+PlutusTx.makeIsDataIndexed ''Action [('Mint, 0), ('Burn, 1)]
 
 {-# INLINEABLE mkPolicy #-}
 mkPolicy :: TxOutRef -> TokenName -> Action -> ScriptContext -> Bool
