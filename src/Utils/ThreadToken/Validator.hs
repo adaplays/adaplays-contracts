@@ -17,6 +17,7 @@ import           Plutus.Script.Utils.V2.Scripts                        (scriptCu
 import           Plutus.Script.Utils.V2.Typed.Scripts.MonetaryPolicies (mkUntypedMintingPolicy)
 import           Plutus.V1.Ledger.Value
 import           Plutus.V2.Ledger.Api
+import           Plutus.V2.Ledger.Contexts                             (ownCurrencySymbol)
 import qualified PlutusTx
 import           PlutusTx.Prelude                                      hiding
                                                                        (Semigroup (..),
@@ -30,9 +31,9 @@ PlutusTx.unstableMakeIsData ''Action
 mkPolicy :: TxOutRef -> TokenName -> Action -> ScriptContext -> Bool
 mkPolicy oref tn action ctx = case action of
 
-  Mint -> traceIfFalse "UTxO not present." hasUTxO && checkMintAmount
+  Mint -> traceIfFalse "UTxO not present." hasUTxO && mustMintAmount 1
 
-  Burn -> checkBurnAmount
+  Burn -> mustMintAmount (-1)
 
   where
 
@@ -42,17 +43,8 @@ mkPolicy oref tn action ctx = case action of
     hasUTxO :: Bool
     hasUTxO = any (\i -> txInInfoOutRef i == oref) $ txInfoInputs info
 
-    checkMintAmount :: Bool
-    checkMintAmount = case flattenValue (txInfoMint info) of
-      [(_, tn', amt)] -> traceIfFalse "Wrong token name." (tn' == tn) && traceIfFalse "Wrong mint amount." (amt == 1)
-      []              -> traceError "No mint present."
-      _ : _ : _       -> traceError "Must mint exactly one token."
-
-    checkBurnAmount :: Bool
-    checkBurnAmount = case flattenValue (txInfoMint info) of
-      [(_, tn', amt)] -> traceIfFalse "Wrong token name." (tn' == tn) && traceIfFalse "Wrong mint amount." (amt == -1)
-      []              -> traceError "No mint present."
-      _ : _ : _       -> traceError "Must mint exactly one token."
+    mustMintAmount :: Integer -> Bool
+    mustMintAmount m = traceIfFalse "Wrong mint amount." $ assetClassValueOf (txInfoMint info) (assetClass (ownCurrencySymbol ctx) tn) == m
 
 policy :: TxOutRef -> TokenName -> MintingPolicy
 policy o n = mkMintingPolicyScript ($$(PlutusTx.compile [|| \oref' tn' -> wrap $ mkPolicy oref' tn' ||]) `PlutusTx.applyCode` PlutusTx.liftCode o `PlutusTx.applyCode` PlutusTx.liftCode n)

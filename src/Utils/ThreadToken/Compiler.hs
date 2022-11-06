@@ -37,5 +37,6 @@ writeRedeemerBurn = writeJSON "output/thread-token/redeemer-burn.json" Validator
 writePolicy :: FilePath -> Plutus.V2.Ledger.Api.MintingPolicy -> IO (Either (FileError ()) ())
 writePolicy file = writeFileTextEnvelope @(PlutusScript PlutusScriptV2) file Nothing . PlutusScriptSerialised . SBS.toShort . LBS.toStrict . serialise . Plutus.V2.Ledger.Api.unMintingPolicyScript
 
+-- `TxOutRef`: https://cardano.stackexchange.com/a/9395/7049
 writeThreadTokenPolicy :: IO (Either (FileError ()) ())
-writeThreadTokenPolicy = writePolicy "output/thread-token/validator.plutus" $ Validator.policy (TxOutRef (Plutus.V2.Ledger.Api.TxId "hi") 1) (Plutus.V2.Ledger.Api.TokenName "jhi")
+writeThreadTokenPolicy = writePolicy "output/thread-token/validator.plutus" $ Validator.policy (TxOutRef "f2d0d3139bcc34e274261e28b8d0afbcfdc6e36c7f4951193451080de82a57cf" 0) (Plutus.V2.Ledger.Api.TokenName "RPS")
