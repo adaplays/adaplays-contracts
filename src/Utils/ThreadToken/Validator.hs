@@ -11,7 +11,7 @@
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE TypeOperators         #-}
 --
-module Utils.ThreadToken.Validator (Action (..), policy, curSymbol) where
+module Utils.ThreadToken.Validator (Action (..), policy, curSymbol, policyWithoutParam) where
 --
 import           Plutus.Script.Utils.V2.Scripts                        (scriptCurrencySymbol)
 import           Plutus.Script.Utils.V2.Typed.Scripts.MonetaryPolicies (mkUntypedMintingPolicy)
@@ -53,3 +53,7 @@ policy o n = mkMintingPolicyScript ($$(PlutusTx.compile [|| \oref' tn' -> wrap $
 
 curSymbol :: TxOutRef -> TokenName -> CurrencySymbol
 curSymbol oref tn = scriptCurrencySymbol $ policy oref tn
+
+policyWithoutParam :: MintingPolicy
+policyWithoutParam = MintingPolicy $ fromCompiledCode $$(PlutusTx.compile [|| wrap ||])
+  where wrap oref tn = mkUntypedMintingPolicy $ mkPolicy (PlutusTx.unsafeFromBuiltinData oref) (PlutusTx.unsafeFromBuiltinData tn)

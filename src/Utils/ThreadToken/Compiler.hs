@@ -2,7 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeApplications  #-}
 
-module Utils.ThreadToken.Compiler (writeRedeemerMint, writeRedeemerBurn, writeThreadTokenPolicy) where
+module Utils.ThreadToken.Compiler (writeRedeemerMint, writeRedeemerBurn, writeThreadTokenPolicy, writeThreadTokenPolicyWithoutParam) where
 
 import           Cardano.Api
 import           Cardano.Api.Shelley         (PlutusScript (..))
@@ -40,3 +40,6 @@ writePolicy file = writeFileTextEnvelope @(PlutusScript PlutusScriptV2) file Not
 -- `TxOutRef`: https://cardano.stackexchange.com/a/9395/7049
 writeThreadTokenPolicy :: IO (Either (FileError ()) ())
 writeThreadTokenPolicy = writePolicy "output/thread-token/validator.plutus" $ Validator.policy (TxOutRef "f2d0d3139bcc34e274261e28b8d0afbcfdc6e36c7f4951193451080de82a57cf" 0) (Plutus.V2.Ledger.Api.TokenName "RPS")
+
+writeThreadTokenPolicyWithoutParam :: IO (Either (FileError ()) ())
+writeThreadTokenPolicyWithoutParam = writePolicy "output/thread-token/validatorWithoutParam.plutus" $ Validator.policyWithoutParam
