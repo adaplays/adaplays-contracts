@@ -45,8 +45,10 @@ library
       PDR.Compiler
       PDR.Validator
       Games.RPS.Validator
+      Games.RPS.Compiler
       Utils.ThreadToken.Validator
       Utils.ThreadToken.Compiler
+      Utils.Common
     build-depends:
       base >= 4.9 && < 5,
       aeson -any,

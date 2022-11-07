@@ -1,8 +1,7 @@
 {-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeApplications  #-}
 
-module PDR.Compiler (writePDRValidator, writeDatum, writeRedeemer, writeUnit) where
+module Utils.Common (writeJSON, writeUnit, writeValidator, writePolicy) where
 
 import           Cardano.Api
 import           Cardano.Api.Shelley   (PlutusScript (..))
@@ -10,7 +9,6 @@ import           Codec.Serialise       (serialise)
 import           Data.Aeson            (encode)
 import qualified Data.ByteString.Lazy  as LBS
 import qualified Data.ByteString.Short as SBS
-import qualified PDR.Validator         as PDRV
 import qualified Plutus.V2.Ledger.Api
 import           PlutusTx              (Data (..))
 import qualified PlutusTx
@@ -30,14 +28,8 @@ writeJSON file = LBS.writeFile file . encode . scriptDataToJson ScriptDataJsonDe
 writeUnit :: IO ()
 writeUnit = writeJSON "output/unit.json" ()
 
-writeDatum :: IO ()
-writeDatum = writeJSON "output/datum.json" $ PDRV.MyDatum 2
-
-writeRedeemer :: IO ()
-writeRedeemer = writeJSON "output/redeemer.json" $ PDRV.MyRedeemer 3
-
 writeValidator :: FilePath -> Plutus.V2.Ledger.Api.Validator -> IO (Either (FileError ()) ())
 writeValidator file = writeFileTextEnvelope @(PlutusScript PlutusScriptV2) file Nothing . PlutusScriptSerialised . SBS.toShort . LBS.toStrict . serialise . Plutus.V2.Ledger.Api.unValidatorScript
 
-writePDRValidator :: IO (Either (FileError ()) ())
-writePDRValidator = writeValidator "output/PDR.plutus" $ PDRV.validator $ PDRV.MyParam 1
+writePolicy :: FilePath -> Plutus.V2.Ledger.Api.MintingPolicy -> IO (Either (FileError ()) ())
+writePolicy file = writeFileTextEnvelope @(PlutusScript PlutusScriptV2) file Nothing . PlutusScriptSerialised . SBS.toShort . LBS.toStrict . serialise . Plutus.V2.Ledger.Api.unMintingPolicyScript

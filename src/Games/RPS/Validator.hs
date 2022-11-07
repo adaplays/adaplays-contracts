@@ -16,9 +16,9 @@
 --
 module Games.RPS.Validator (Move (..), MatchResult (..), GameParams (..), GameDatum (..), GameRedeemer (..), validator) where
 --
+import           Ledger                               (PaymentPubKeyHash (unPaymentPubKeyHash))
 import           Ledger.Ada                           (fromValue, getLovelace)
 import           Plutus.Script.Utils.V2.Typed.Scripts (mkUntypedValidator)
-import           Plutus.V1.Ledger.Address             (toPubKeyHash)
 import           Plutus.V1.Ledger.Interval
 import           Plutus.V1.Ledger.Time
 import           Plutus.V1.Ledger.Value
@@ -27,7 +27,7 @@ import           Plutus.V2.Ledger.Contexts
 import qualified PlutusTx
 import           PlutusTx.Prelude                     hiding (Semigroup (..),
                                                        unless)
-import qualified Utils.ThreadToken.Validator          as M
+-- import qualified Utils.ThreadToken.Validator          as M
 
 data Move = Rock | Paper | Scissors
 
@@ -54,14 +54,13 @@ PlutusTx.makeIsDataIndexed ''MatchResult [('WinA, 0), ('WinB, 1), ('Draw, 2)]
 -- Though I want gStake to be greater than or equal to 2 ADA in frontend, but I haven't enforced that here as I don't want UTxO's to remain stagnant.
 -- Thread token is something this contract doesn't (and perhaps can't) check whether its an nft or not.
 data GameParams = GameParams
-  { gPlayerA      :: !Address
-  , gPlayerB      :: !Address
+  { gPlayerA      :: !PaymentPubKeyHash
+  , gPlayerB      :: !PaymentPubKeyHash
   , gStake        :: !Integer
   , gStartTime    :: !POSIXTime
   , gMoveDuration :: !DiffMilliSeconds
   , gToken        :: !AssetClass
   , gTokenORef    :: !TxOutRef
-  , gTokenName    :: !TokenName
   , gPbkdf2Iv     :: ![Integer]
   , gPbkdf2Iter   :: !Integer
   , gEncryptIv    :: ![Integer]
@@ -75,7 +74,6 @@ instance Eq GameParams where
                   && gMoveDuration paramA == gMoveDuration paramB
                   && gToken paramA == gToken paramB
                   && gTokenORef paramA == gTokenORef paramB
-                  && gTokenName paramA == gTokenName paramB
                   && gPbkdf2Iv paramA == gPbkdf2Iv paramB
                   && gPbkdf2Iter paramA == gPbkdf2Iter paramB
                   && gEncryptIv paramA == gEncryptIv paramB
@@ -99,17 +97,18 @@ PlutusTx.makeIsDataIndexed ''GameRedeemer [('BMove, 0), ('Reveal, 1), ('BTimeout
 mkValidator :: GameDatum -> GameRedeemer -> ScriptContext -> Bool
 mkValidator dat red ctx =
 
-  traceIfFalse "Token missing from input."
+  traceIfFalse "Thread token missing from input."
     (assetClassValueOf (txOutValue ownInput) (gToken gameParams) == 1) &&
-  traceIfFalse "Input token is not an NFT."
-    (M.curSymbol (gTokenORef gameParams) (gTokenName gameParams) == fst (unAssetClass (gToken gameParams))) &&
+  -- I do the following check off-chain. Since currency symbol is obtained from hash, it is next to impossible to have another script with restricted entropy (as I am giving tx reference and token name) to map to same image.
+  -- traceIfFalse "Input token is not an NFT."
+  --   (M.curSymbol (gTokenORef gameParams) (snd (unAssetClass (gToken gameParams))) == fst (unAssetClass (gToken gameParams))) &&
 
   case (gFirstMove dat, gSecondMove dat, gMatchResult dat, red) of
 
     -- Case when second player doesn't make a move.
     (_, Nothing, Nothing, BTimeoutTakeA) ->
       traceIfFalse "Not signed by first player."
-        (txSignedBy info $ playerPubKeyHash $ gPlayerA gameParams) &&
+        (txSignedBy info $ unPaymentPubKeyHash $ gPlayerA gameParams) &&
       traceIfFalse "Cannot claim before time duration given for second player's move."
         (from ((1 :: POSIXTime) + secondPlayerMoveDeadline) `contains` txInfoValidRange info) &&
       traceIfFalse "NFT must be burnt." nftBurnt
@@ -117,7 +116,7 @@ mkValidator dat red ctx =
     -- Case when second player makes a move
     (bs, Nothing, Nothing, BMove move) ->
       traceIfFalse "Not signed by second player."
-        (txSignedBy info $ playerPubKeyHash $ gPlayerB gameParams) &&
+        (txSignedBy info $ unPaymentPubKeyHash $ gPlayerB gameParams) &&
       -- Though we assume that start state is valid, still adding this.
       traceIfFalse "First player's stake is missing."
         (lovelaces (txOutValue ownInput) == gStake gameParams) &&
@@ -135,7 +134,7 @@ mkValidator dat red ctx =
     -- So when first player reveals his nonce, we'll allow transfer of full amount or half depending upon whether he won or their was draw.
     (bs, Just moveB, Nothing, Reveal nonce moveA) ->
       traceIfFalse "Not signed by first player."
-        (txSignedBy info $ playerPubKeyHash $ gPlayerA gameParams) &&
+        (txSignedBy info $ unPaymentPubKeyHash $ gPlayerA gameParams) &&
       traceIfFalse "Commit mismatch."
         (checkNonce bs nonce moveA) &&
       traceIfFalse "Missed deadline."
@@ -160,19 +159,19 @@ mkValidator dat red ctx =
 
     (_, Just _, Nothing, ATimeoutTakeB) ->
       traceIfFalse "Not signed by second player."
-        (txSignedBy info $ playerPubKeyHash $ gPlayerB gameParams) &&
+        (txSignedBy info $ unPaymentPubKeyHash $ gPlayerB gameParams) &&
       traceIfFalse "Cannot claim before time duration given for first player's move."
         (from ((1 :: POSIXTime) + firstPlayerMoveDeadline) `contains` txInfoValidRange info) &&
       traceIfFalse "NFT must be burnt." nftBurnt
 
     (_, Just _, Just WinB, AIsIdiot) ->
       traceIfFalse "Not signed by second player."
-        (txSignedBy info $ playerPubKeyHash $ gPlayerB gameParams) &&
+        (txSignedBy info $ unPaymentPubKeyHash $ gPlayerB gameParams) &&
       traceIfFalse "NFT must be burnt." nftBurnt
 
     (_, Just _, Just Draw, DrawB) ->
       traceIfFalse "Not signed by second player."
-        (txSignedBy info $ playerPubKeyHash $ gPlayerB gameParams) &&
+        (txSignedBy info $ unPaymentPubKeyHash $ gPlayerB gameParams) &&
       traceIfFalse "NFT must be burnt." nftBurnt
 
     _anyOtherMatch -> False
@@ -212,10 +211,6 @@ mkValidator dat red ctx =
 
     ownOutputDatum :: GameDatum
     ownOutputDatum = deserialiseDatum $ outputDatum ownOutput
-
-    playerPubKeyHash p = case toPubKeyHash p of
-      Just v  -> v
-      Nothing -> traceError "No corresponding PubKeyCredential for this player address."
 
     lovelaces :: Value -> Integer
     lovelaces = getLovelace . fromValue

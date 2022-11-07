@@ -46,11 +46,13 @@ mkPolicy oref tn action ctx = case action of
     mustMintAmount :: Integer -> Bool
     mustMintAmount m = traceIfFalse "Wrong mint amount." $ assetClassValueOf (txInfoMint info) (assetClass (ownCurrencySymbol ctx) tn) == m
 
+{-# INLINABLE policy #-}
 policy :: TxOutRef -> TokenName -> MintingPolicy
 policy o n = mkMintingPolicyScript ($$(PlutusTx.compile [|| \oref' tn' -> wrap $ mkPolicy oref' tn' ||]) `PlutusTx.applyCode` PlutusTx.liftCode o `PlutusTx.applyCode` PlutusTx.liftCode n)
   where
     wrap = mkUntypedMintingPolicy
 
+{-# INLINABLE curSymbol #-}
 curSymbol :: TxOutRef -> TokenName -> CurrencySymbol
 curSymbol oref tn = scriptCurrencySymbol $ policy oref tn
 
