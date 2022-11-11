@@ -42,8 +42,6 @@ library
     import: lang
     exposed-modules:
       MyModule
-      PDR.Compiler
-      PDR.Validator
       Games.RPS.Validator
       Games.RPS.Compiler
       Utils.ThreadToken.Validator
@@ -75,12 +73,3 @@ executable say-hello
   hs-source-dirs: app
   build-depends:
     base >= 4.9 && < 5,
-
-executable generate-PDR-files
-  import: lang
-  main-is: generate-PDR-files.hs
-  hs-source-dirs: app
-  build-depends:
-    base >= 4.9 && < 5,
-    plutus-starting-template -any,
-    cardano-api -any,

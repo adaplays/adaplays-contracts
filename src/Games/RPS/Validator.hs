@@ -54,16 +54,17 @@ PlutusTx.makeIsDataIndexed ''MatchResult [('WinA, 0), ('WinB, 1), ('Draw, 2)]
 -- Though I want gStake to be greater than or equal to 2 ADA in frontend, but I haven't enforced that here as I don't want UTxO's to remain stagnant.
 -- Thread token is something this contract doesn't (and perhaps can't) check whether its an nft or not.
 data GameParams = GameParams
-  { gPlayerA      :: !PaymentPubKeyHash
-  , gPlayerB      :: !PaymentPubKeyHash
-  , gStake        :: !Integer
-  , gStartTime    :: !POSIXTime
-  , gMoveDuration :: !DiffMilliSeconds
-  , gToken        :: !AssetClass
-  , gTokenORef    :: !TxOutRef
-  , gPbkdf2Iv     :: ![Integer]
-  , gPbkdf2Iter   :: !Integer
-  , gEncryptIv    :: ![Integer]
+  { gPlayerA        :: !PaymentPubKeyHash
+  , gPlayerB        :: !PaymentPubKeyHash
+  , gStake          :: !Integer
+  , gStartTime      :: !POSIXTime
+  , gMoveDuration   :: !DiffMilliSeconds
+  , gToken          :: !AssetClass
+  , gTokenORef      :: !TxOutRef
+  , gPbkdf2Iv       :: !BuiltinByteString
+  , gPbkdf2Iter     :: !Integer
+  , gEncryptedNonce :: !BuiltinByteString
+  , gEncryptIv      :: !BuiltinByteString
   }
 
 instance Eq GameParams where
@@ -76,6 +77,7 @@ instance Eq GameParams where
                   && gTokenORef paramA == gTokenORef paramB
                   && gPbkdf2Iv paramA == gPbkdf2Iv paramB
                   && gPbkdf2Iter paramA == gPbkdf2Iter paramB
+                  && gEncryptedNonce paramA == gEncryptedNonce paramB
                   && gEncryptIv paramA == gEncryptIv paramB
 
 PlutusTx.makeIsDataIndexed ''GameParams [('GameParams, 0)]

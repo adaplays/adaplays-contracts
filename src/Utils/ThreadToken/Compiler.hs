@@ -19,7 +19,7 @@ writeRedeemerBurn = writeJSON "output/thread-token/redeemer-burn.json" Validator
 
 -- `TxOutRef`: https://cardano.stackexchange.com/a/9395/7049
 writeThreadTokenPolicy :: IO (Either (FileError ()) ())
-writeThreadTokenPolicy = writePolicy "output/thread-token/validator.plutus" $ Validator.policy (TxOutRef "25542391abc3c25b601eda01a3bc459154c33b63fecb91c0363a3addba45ffba" 0) (Plutus.V2.Ledger.Api.TokenName "RPS")
+writeThreadTokenPolicy = writePolicy "output/thread-token/validator.plutus" $ Validator.policy (TxOutRef "9517d184c01e68c97b1605ccb009591e259c020841ee28640fba688077bf35fb" 39) (Plutus.V2.Ledger.Api.TokenName "RPS")
 
 writeThreadTokenPolicyWithoutParam :: IO (Either (FileError ()) ())
 writeThreadTokenPolicyWithoutParam = writePolicy "output/thread-token/validatorWithoutParam.plutus" Validator.policyWithoutParam
