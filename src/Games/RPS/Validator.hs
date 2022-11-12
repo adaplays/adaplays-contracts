@@ -125,7 +125,7 @@ mkValidator dat red ctx =
       traceIfFalse "Second player's stake is missing."
         (lovelaces (txOutValue ownOutput) == (2 * gStake gameParams)) &&
       traceIfFalse "Wrong output datum."
-        (gFirstMove ownOutputDatum == bs && gSecondMove ownOutputDatum == Just move) &&
+        (gFirstMove ownOutputDatum == bs && gSecondMove ownOutputDatum == Just move && isNothing (gMatchResult ownOutputDatum)) &&
       traceIfFalse "Missed deadline."
         (interval (gStartTime gameParams) secondPlayerMoveDeadline `contains` txInfoValidRange info) &&
       traceIfFalse "Token missing from output."
@@ -145,7 +145,7 @@ mkValidator dat red ctx =
         WinA -> traceIfFalse "NFT must be burnt." nftBurnt
         Draw ->
           traceIfFalse "Wrong output datum."
-            (gFirstMove ownOutputDatum == bs && gSecondMove ownOutputDatum == Just moveB && outputMatchResult == Draw) &&
+            (gFirstMove ownOutputDatum == moveToByteString moveA && gSecondMove ownOutputDatum == Just moveB && outputMatchResult == Draw) &&
           traceIfFalse "Token missing from output."
             (assetClassValueOf (txOutValue ownOutput) (gToken gameParams) == 1) &&
           traceIfFalse "Second player's stake missing in draw output."
@@ -153,7 +153,7 @@ mkValidator dat red ctx =
         -- AIsIdiot
         WinB ->
           traceIfFalse "Wrong output datum."
-            (gFirstMove ownOutputDatum == bs && gSecondMove ownOutputDatum == Just moveB && outputMatchResult == WinB)                             &&
+            (gFirstMove ownOutputDatum == moveToByteString moveA && gSecondMove ownOutputDatum == Just moveB && outputMatchResult == WinB)                             &&
           traceIfFalse "Token missing from output."
             (assetClassValueOf (txOutValue ownOutput) (gToken gameParams) == 1) &&
           traceIfFalse "You lost, cannot take stake from game."
@@ -226,13 +226,15 @@ mkValidator dat red ctx =
     nftBurnt :: Bool
     nftBurnt = assetClassValueOf (txInfoMint info) (gToken gameParams) == (-1)
 
+
+    moveToByteString :: Move -> BuiltinByteString
+    moveToByteString move = case move of
+      Rock     -> "Rock"
+      Paper    -> "Paper"
+      Scissors -> "Scissors"
+
     checkNonce :: BuiltinByteString -> BuiltinByteString -> Move -> Bool
-    checkNonce bs nonce move = sha2_256 (nonce `appendByteString` move') == bs
-      where
-        move' = case move of
-          Rock     -> "Rock"
-          Paper    -> "Paper"
-          Scissors -> "Scissors"
+    checkNonce bs nonce move = sha2_256 (nonce `appendByteString` moveToByteString move) == bs
 
     outputMatchResult :: MatchResult
     outputMatchResult = case gMatchResult ownOutputDatum of
