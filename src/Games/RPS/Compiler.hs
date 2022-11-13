@@ -5,18 +5,19 @@ module Games.RPS.Compiler (writeDatum, writeRedeemer, writeRPSValidator) where
 
 import           Cardano.Api
 import           Games.RPS.Validator
-import           Ledger.Address            (PaymentPubKeyHash (..))
+import           Plutus.V1.Ledger.Address
+import           Plutus.V1.Ledger.Credential
 import           Plutus.V1.Ledger.Value
 import           Plutus.V2.Ledger.Contexts
-import           PlutusTx.Prelude          hiding (Semigroup (..), unless)
-import           Prelude                   (IO)
+import           PlutusTx.Prelude            hiding (Semigroup (..), unless)
+import           Prelude                     (IO)
 import           Utils.Common
 
 gameParams :: GameParams
 gameParams =
   GameParams {
-    gPlayerA = PaymentPubKeyHash "e822059c8b3b42440ad9f33631af3c254df77088a618cee706ba3355"
-  , gPlayerB = PaymentPubKeyHash "99a6d6253a56c17ee206cf275c7381d946a0e24260a753a14b08455f"
+    gPlayerA = Address (PubKeyCredential "e822059c8b3b42440ad9f33631af3c254df77088a618cee706ba3355") (Just (StakingHash (PubKeyCredential "83cbf04ca35f0751c912ec1d49f351df43a508f09f389f008abdb184")))
+  , gPlayerB = Address (PubKeyCredential "99a6d6253a56c17ee206cf275c7381d946a0e24260a753a14b08455f") (Just (StakingHash (PubKeyCredential "b875e90701f7ba62af97b74c9670e8875ec5b70dd96cbcdbe640b26a")))
   , gStake = 3000000
   , gStartTime = 1667795400000
   , gMoveDuration = 180000  -- 3 minutes
@@ -42,7 +43,7 @@ writeDatum :: IO ()
 writeDatum = writeJSON "output/games/rps/datum.json" gameDatum
 
 gameRedeemer :: GameRedeemer
-gameRedeemer = BTimeoutTakeA
+gameRedeemer = Reveal "Hi their!" Paper
 
 writeRedeemer :: IO ()
 writeRedeemer = writeJSON "output/games/rps/redeemer.json" gameRedeemer

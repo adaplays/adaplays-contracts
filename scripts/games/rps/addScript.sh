@@ -8,7 +8,7 @@ cardano-cli transaction build \
 --testnet-magic 1 \
 --tx-in $TXIN \
 --tx-in $TXIN_2 \
---tx-out $REFERENCE_ADDRESS+36000000 \
+--tx-out $REFERENCE_ADDRESS+38000000 \
 --tx-out-reference-script-file $PLUTUS_SCRIPT \
 --change-address $MY_ADDRESS \
 --protocol-params-file protocol.json \

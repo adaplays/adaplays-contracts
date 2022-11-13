@@ -16,9 +16,9 @@
 --
 module Games.RPS.Validator (Move (..), MatchResult (..), GameParams (..), GameDatum (..), GameRedeemer (..), validator) where
 --
-import           Ledger                               (PaymentPubKeyHash (unPaymentPubKeyHash))
 import           Ledger.Ada                           (fromValue, getLovelace)
 import           Plutus.Script.Utils.V2.Typed.Scripts (mkUntypedValidator)
+import           Plutus.V1.Ledger.Address
 import           Plutus.V1.Ledger.Interval
 import           Plutus.V1.Ledger.Time
 import           Plutus.V1.Ledger.Value
@@ -54,8 +54,8 @@ PlutusTx.makeIsDataIndexed ''MatchResult [('WinA, 0), ('WinB, 1), ('Draw, 2)]
 -- Though I want gStake to be greater than or equal to 2 ADA in frontend, but I haven't enforced that here as I don't want UTxO's to remain stagnant.
 -- Thread token is something this contract doesn't (and perhaps can't) check whether its an nft or not.
 data GameParams = GameParams
-  { gPlayerA        :: !PaymentPubKeyHash
-  , gPlayerB        :: !PaymentPubKeyHash
+  { gPlayerA        :: !Address
+  , gPlayerB        :: !Address
   , gStake          :: !Integer
   , gStartTime      :: !POSIXTime
   , gMoveDuration   :: !DiffMilliSeconds
@@ -110,7 +110,7 @@ mkValidator dat red ctx =
     -- Case when second player doesn't make a move.
     (_, Nothing, Nothing, BTimeoutTakeA) ->
       traceIfFalse "Not signed by first player."
-        (txSignedBy info $ unPaymentPubKeyHash $ gPlayerA gameParams) &&
+        (txSignedBy info $ getPlayerPKH (gPlayerA gameParams)) &&
       traceIfFalse "Cannot claim before time duration given for second player's move."
         (from ((1 :: POSIXTime) + secondPlayerMoveDeadline) `contains` txInfoValidRange info) &&
       traceIfFalse "NFT must be burnt." nftBurnt
@@ -118,7 +118,7 @@ mkValidator dat red ctx =
     -- Case when second player makes a move
     (bs, Nothing, Nothing, BMove move) ->
       traceIfFalse "Not signed by second player."
-        (txSignedBy info $ unPaymentPubKeyHash $ gPlayerB gameParams) &&
+        (txSignedBy info $ getPlayerPKH $ gPlayerB gameParams) &&
       -- Though we assume that start state is valid, still adding this.
       traceIfFalse "First player's stake is missing."
         (lovelaces (txOutValue ownInput) == gStake gameParams) &&
@@ -136,7 +136,7 @@ mkValidator dat red ctx =
     -- So when first player reveals his nonce, we'll allow transfer of full amount or half depending upon whether he won or their was draw.
     (bs, Just moveB, Nothing, Reveal nonce moveA) ->
       traceIfFalse "Not signed by first player."
-        (txSignedBy info $ unPaymentPubKeyHash $ gPlayerA gameParams) &&
+        (txSignedBy info $ getPlayerPKH $ gPlayerA gameParams) &&
       traceIfFalse "Commit mismatch."
         (checkNonce bs nonce moveA) &&
       traceIfFalse "Missed deadline."
@@ -161,19 +161,19 @@ mkValidator dat red ctx =
 
     (_, Just _, Nothing, ATimeoutTakeB) ->
       traceIfFalse "Not signed by second player."
-        (txSignedBy info $ unPaymentPubKeyHash $ gPlayerB gameParams) &&
+        (txSignedBy info $ getPlayerPKH $ gPlayerB gameParams) &&
       traceIfFalse "Cannot claim before time duration given for first player's move."
         (from ((1 :: POSIXTime) + firstPlayerMoveDeadline) `contains` txInfoValidRange info) &&
       traceIfFalse "NFT must be burnt." nftBurnt
 
     (_, Just _, Just WinB, AIsIdiot) ->
       traceIfFalse "Not signed by second player."
-        (txSignedBy info $ unPaymentPubKeyHash $ gPlayerB gameParams) &&
+        (txSignedBy info $ getPlayerPKH $ gPlayerB gameParams) &&
       traceIfFalse "NFT must be burnt." nftBurnt
 
     (_, Just _, Just Draw, DrawB) ->
       traceIfFalse "Not signed by second player."
-        (txSignedBy info $ unPaymentPubKeyHash $ gPlayerB gameParams) &&
+        (txSignedBy info $ getPlayerPKH $ gPlayerB gameParams) &&
       traceIfFalse "NFT must be burnt." nftBurnt
 
     _anyOtherMatch -> False
@@ -185,6 +185,12 @@ mkValidator dat red ctx =
 
     gameParams :: GameParams
     gameParams = gParams dat
+
+    getPlayerPKH :: Address -> PubKeyHash
+    getPlayerPKH addr = case toPubKeyHash addr of
+      Nothing  -> traceError "No PubKey credentials exist for this address."
+      Just pkh -> pkh
+
 
     ownInput :: TxOut
     ownInput = case findOwnInput ctx of
