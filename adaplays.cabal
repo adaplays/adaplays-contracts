@@ -1,5 +1,5 @@
 cabal-version:      3.0
-name:               plutus-starting-template
+name:               adaplays
 version:            0.1.0.0
 
 -- A short (one-line) description of the package.
@@ -13,8 +13,8 @@ version:            0.1.0.0
 
 license:            MIT
 license-files:      LICENSE
-author:             Your name
-maintainer:         Your email
+author:             Sourabh Aggarwal
+maintainer:         swasti@sourabh.xyz
 
 -- A copyright notice.
 -- copyright:
@@ -33,7 +33,6 @@ common lang
       -Wall -Wnoncanonical-monad-instances
       -Wincomplete-uni-patterns -Wincomplete-record-updates
       -Wredundant-constraints -Widentities
-      -- See Plutus Tx readme
       -fobject-code -fno-ignore-interface-pragmas -fno-omit-interface-pragmas
     if flag(defer-plugin-errors)
         ghc-options: -fplugin-opt PlutusTx.Plugin:defer-errors
@@ -41,7 +40,6 @@ common lang
 library
     import: lang
     exposed-modules:
-      MyModule
       Games.RPS.Validator
       Games.RPS.Compiler
       Utils.ThreadToken.Validator
@@ -66,10 +64,3 @@ library
       cardano-api -any,
       serialise -any,
     hs-source-dirs: src examples/src
-
-executable say-hello
-  import: lang
-  main-is: say-hello.hs
-  hs-source-dirs: app
-  build-depends:
-    base >= 4.9 && < 5,
